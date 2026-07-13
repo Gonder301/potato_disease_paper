@@ -1,0 +1,258 @@
+\documentclass[journal,compsoc]{IEEEtran}
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{cite}
+\usepackage{color}
+\usepackage{float}
+\usepackage[all]{hypcap}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, positioning}
+
+\begin{document}
+
+\title{Redundancia Visual y Susceptibilidad al \textit{Leakage} en la Evaluación de Modelos de Fitopatología: un Estudio de Doble Dominio y el Índice de Sensibilidad al \textit{Leakage} (LSI)}
+
+\author{Andrés Abraham Guerrero Jaramillo\IEEEauthorrefmark{1} y Hugo Froilán Vega Huerta\IEEEauthorrefmark{1}
+\thanks{\IEEEauthorrefmark{1}Universidad Nacional Mayor de San Marcos (UNMSM), Facultad de Ingeniería de Sistemas e Informática, Curso de Inteligencia Artificial, Lima, Perú. Emails: andres.guerrero@unmsm.edu.pe, hvegah@unmsm.edu.pe}}
+
+\markboth{Universidad Nacional Mayor de San Marcos, Curso de Inteligencia Artificial, 2026}{Guerrero Jaramillo y Vega Huerta: Redundancia Visual y Leakage en Fitopatología}
+\maketitle
+
+\begin{abstract}
+El aprendizaje profundo reporta exactitudes cercanas al 100\% en la clasificación de enfermedades foliares, pero estas cifras se obtienen habitualmente con particiones aleatorias que permiten la fuga de datos (\textit{data leakage}) por redundancia visual entre imágenes casi duplicadas. Este trabajo cuantifica, por primera vez de forma sistemática y en un marco de doble dominio (laboratorio vs.\ campo), cuánta de esa exactitud es atribuible a la redundancia. Proponemos dos aportes: (i) un protocolo de partición \textit{Visual-Clustering Group K-Fold} (VC-GKF) basado en embeddings auto-supervisados \textbf{DINOv2}, que elimina la circularidad de usar el \textit{backbone} del propio clasificador; y (ii) el \textbf{Índice de Sensibilidad al Leakage (LSI)}, una métrica que resume cuánto se infla el desempeño de un par (modelo, dataset) por redundancia. Evaluamos cuatro arquitecturas (ResNet50, MobileNetV3-Large, EfficientNetV2-S y ViT-B/16) sobre dos dominios de papa con las mismas tres clases: PlantVillage (laboratorio) y un conjunto de campo (Shabrina + Sankalana). Hallamos que (1) la redundancia visual es masiva en laboratorio (solo 1\% de imágenes singleton; un único clúster agrupa el 44\% del dataset) y modesta en campo (17\% de singletons); (2) pese a ello, la inflación de exactitud es en promedio pequeña ($\sim$2 pp), lo que revela que la redundancia no se traduce automáticamente en exactitud ilusoria; y (3) de forma más relevante, la susceptibilidad al \textit{leakage} depende de la arquitectura: en el dominio redundante, ResNet50 (+3.86 pp) y ViT-B/16 (+3.94 pp) se inflan $\sim$8$\times$ más que los modelos eficientes y regularizados MobileNetV3 (+0.26 pp) y EfficientNetV2-S (+0.52 pp), con intervalos de confianza \textit{bootstrap} del 95\% que excluyen el cero únicamente para los dos primeros. Esto implica que las arquitecturas de borde (\textit{Edge AI}) no solo son más ligeras, sino también más honestamente evaluables.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Fuga de datos, evaluación de modelos, redundancia visual, DINOv2, Vision Transformers, Edge AI, fitopatología.
+\end{IEEEkeywords}
+
+\section{Introducción}
+\IEEEPARstart{L}{a} detección automatizada de enfermedades foliares mediante aprendizaje profundo se ha convertido en un pilar de la agricultura de precisión, con reportes de exactitud superiores al 99\% sobre conjuntos de datos de referencia como PlantVillage \cite{hughes2015open, mohanty2016using}. Sin embargo, una porción creciente de la literatura metodológica advierte que buena parte de estas cifras puede ser un artefacto de evaluación: la \textbf{fuga de datos} (\textit{data leakage}) por redundancia visual \cite{kapoor2023leakage}. Cuando se emplean particiones aleatorias a nivel de imagen ---el estándar de facto---, fotografías casi idénticas del mismo espécimen, tomadas en la misma sesión y con el mismo fondo, se reparten simultáneamente entre entrenamiento y prueba, permitiendo que el modelo ``reconozca'' en el test imágenes que ya vio de forma encubierta \cite{roberts2017crossval}.
+
+Este fenómeno, documentado como una crisis de reproducibilidad en múltiples disciplinas \cite{kapoor2023leakage}, ha sido escasamente cuantificado en fitopatología y nunca, hasta donde sabemos, contrastando de forma controlada datasets de laboratorio frente a datasets de campo. Este trabajo aborda esa brecha con un marco riguroso y honesto, priorizando \textbf{medir} el fenómeno antes que asumirlo.
+
+\subsection*{Contribuciones}
+\begin{enumerate}
+\item Un \textbf{protocolo de partición controlado por fuga} (VC-GKF) que agrupa imágenes redundantes con embeddings auto-supervisados \textbf{DINOv2} \cite{oquab2024dinov2} y \textit{perceptual hashing} \cite{zauner2010phash}, evitando la circularidad de clusterizar con el \textit{backbone} del propio clasificador.
+\item El \textbf{Índice de Sensibilidad al Leakage (LSI)}, que cuantifica la inflación de desempeño atribuible a la redundancia.
+\item Un \textbf{estudio empírico de doble dominio} (laboratorio vs.\ campo) que cuantifica la redundancia visual y su impacto real sobre la exactitud.
+\item El hallazgo de que la \textbf{susceptibilidad al \textit{leakage} escala con la arquitectura}: los modelos eficientes y regularizados resultan notablemente más robustos que ResNet50 y ViT-B/16.
+\end{enumerate}
+
+\subsection*{Preguntas de Investigación}
+\begin{description}
+\item[RQ1] ¿Cuánta redundancia visual contienen los datasets de fitopatología, y difiere entre condiciones de laboratorio y de campo?
+\item[RQ2] ¿En qué medida esa redundancia infla la exactitud reportada bajo particiones aleatorias?
+\item[RQ3] ¿La susceptibilidad al \textit{leakage} depende de la arquitectura del modelo?
+\end{description}
+
+\section{Trabajos Relacionados}
+El corpus revisado comprende referencias de alto impacto: la mayoría corresponde a revistas del primer cuartil (Q1) de SCImago (\textit{Computers and Electronics in Agriculture}, \textit{Expert Systems with Applications}, \textit{Frontiers in Plant Science}, \textit{Patterns}, \textit{Scientific Reports}) además de conferencias de primer nivel (CVPR, ICCV, ICLR, NeurIPS, TMLR), con fuerte concentración en 2024--2025.
+
+\textbf{Fuga de datos y evaluación rigurosa.} Kapoor y Narayanan \cite{kapoor2023leakage} documentaron cómo la fuga de datos ha producido optimismo metodológico en decenas de campos científicos. Roberts et al.\ \cite{roberts2017crossval} demostraron que las particiones aleatorias sobre datos con estructura espacial o temporal subestiman gravemente el error, y que las particiones por bloques lo corrigen. El mismo riesgo se ha reportado en dominios biomédicos y ecológicos con datos espacialmente correlacionados \cite{roberts2017crossval}. Schneider et al.\ \cite{schneider2020domain} formalizaron el impacto del desplazamiento de covariables sobre la robustez de los clasificadores profundos.
+
+\textbf{Fitopatología con aprendizaje profundo.} Desde el trabajo seminal de Mohanty et al.\ \cite{mohanty2016using} y la comparativa de Too et al.\ \cite{too2019comparative}, el estado del arte migró hacia Transformers e híbridos: Pacal \cite{pacal2024enhancing}, Islam et al.\ \cite{islam2025plant}, Chang et al.\ \cite{chang2024edge}, Wang et al.\ \cite{wang2024pdtr}, Singh et al.\ \cite{singh2024vitgan}, Cui et al.\ \cite{cui2024plant}, He et al.\ \cite{he2025stcfi}, Liu et al.\ \cite{liu2024wasserstein} y Deng et al.\ \cite{deng2025efficient}. En papa específicamente, Bhatt et al.\ \cite{potatoxai2024}, Mousa et al.\ \cite{mousa2025potato}, Sangar y Rajasekar \cite{sangar2025optimized}, Koç et al.\ \cite{koc2024potato} y Liu et al.\ \cite{liu2025lightweight} reportan precisiones elevadas, casi siempre bajo particiones aleatorias en dominios controlados. Enfoques recientes de aprendizaje con pocos ejemplos \cite{rezaei2024fewshot, abutaleb2024transformer}, transferencia \cite{joshi2025transfer} e inteligencia artificial explicable \cite{ramesh2024explainable} han buscado mejorar la generalización, aunque también evaluados mayoritariamente bajo particiones aleatorias. La evaluación en campo no controlado \cite{shabrina2024uncontrolled, thapa2025plant, singh2020plantdoc, moupojou2023fieldplant} sigue siendo un reto abierto.
+
+\textbf{Representaciones auto-supervisadas y detección de duplicados.} DINOv2 \cite{oquab2024dinov2} produce embeddings semánticos robustos sin supervisión, y los descriptores de detección de copias \cite{pizzi2022sscd} junto al \textit{perceptual hashing} \cite{zauner2010phash} son estándar para identificar imágenes casi duplicadas. Estas herramientas permiten un agrupamiento de redundancia independiente de la tarea de clasificación.
+
+\section{Metodología}
+
+\subsection{Datasets: Doble Dominio de Papa}
+Para aislar el efecto \textbf{laboratorio vs.\ campo} manteniendo constante la tarea, empleamos dos dominios con las \textbf{mismas tres clases} (\textit{early\_blight}, \textit{late\_blight}, \textit{healthy}):
+\begin{itemize}
+\item \textbf{Dominio A (Laboratorio):} subconjunto de papa de PlantVillage \cite{hughes2015open}, 2{,}152 imágenes con fondos homogéneos y luz uniforme (1{,}000 / 1{,}000 / 152).
+\item \textbf{Dominio B (Campo):} conjunto no controlado de Shabrina et al.\ \cite{shabrina2024uncontrolled} más imágenes sanas de Sankalana, 1{,}659 imágenes con iluminación variable, oclusión por malezas y fondos ruidosos (748 / 347 / 564).
+\end{itemize}
+
+\subsection{Partición Controlada por Fuga: VC-GKF con DINOv2}
+Cada imagen $x_i$ se proyecta a un embedding auto-supervisado $z_i = f_{\text{DINOv2}}(x_i)$, sin usar etiquetas ni el \textit{backbone} del clasificador, lo que elimina la circularidad de evaluar un modelo con clústeres definidos por ese mismo modelo. Sobre la similitud coseno se aplica \textit{Clustering Jerárquico Aglomerativo} (enlace promedio) con umbral de distancia $\tau$:
+\begin{equation}
+d(z_i,z_j)=1-\frac{z_i\cdot z_j}{\lVert z_i\rVert\,\lVert z_j\rVert},\qquad \text{mismo clúster si } d\le\tau .
+\end{equation}
+Las particiones 70/15/15 se definen \textbf{a nivel de clúster} (\textit{Group K-Fold}): todas las imágenes de un clúster van a un único subconjunto, impidiendo la fuga por redundancia. La Fig.~\ref{fig:pipeline} resume el flujo.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\columnwidth}{!}{%
+\begin{tikzpicture}[node distance=1.1cm, auto]
+    \tikzstyle{block}=[rectangle, draw, fill=blue!10, text width=6em, text centered, rounded corners, minimum height=2.6em]
+    \tikzstyle{line}=[draw, -latex', thick]
+    \node [block] (a) {Imágenes\\(Dom.\ A y B)};
+    \node [block, right=0.6cm of a] (b) {DINOv2\\+ pHash};
+    \node [block, right=0.6cm of b] (c) {Clustering\\aglomerativo ($\tau$)};
+    \node [block, below=0.6cm of c] (d) {Split VC-GKF\\(por clúster)};
+    \node [block, left=0.6cm of d] (e) {Entrenamiento\\(5 semillas)};
+    \node [block, left=0.6cm of e] (f) {LSI +\\análisis};
+    \path [line] (a)--(b); \path [line] (b)--(c); \path [line] (c)--(d);
+    \path [line] (d)--(e); \path [line] (e)--(f);
+\end{tikzpicture}}
+\caption{Flujo metodológico: agrupamiento de redundancia con DINOv2, partición anti-fuga y cómputo del LSI.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Índice de Sensibilidad al Leakage (LSI)}
+Para un par (modelo $m$, dominio $d$), sea $\text{Acc}_{\text{rand}}$ la exactitud bajo partición aleatoria y $\text{Acc}_{\text{VC-GKF}}$ la exactitud bajo la partición controlada por fuga. Definimos:
+\begin{equation}
+\text{LSI} = \frac{\text{Acc}_{\text{rand}} - \text{Acc}_{\text{VC-GKF}}}{\text{Acc}_{\text{rand}}}\in(-\infty,1).
+\end{equation}
+Un LSI cercano a 0 indica que el desempeño no depende de la redundancia (evaluación honesta); un LSI alto indica inflación por \textit{leakage}. La métrica es adimensional y comparable entre modelos y dominios.
+
+\subsection{Configuración Experimental}
+Arquitecturas: ResNet50 \cite{he2016deep}, MobileNetV3-Large \cite{howard2019searching}, EfficientNetV2-S \cite{tan2019efficientnet, tan2021efficientnetv2} y ViT-B/16 \cite{dosovitskiy2020image}, inicializadas con pesos de ImageNet. Focal Loss ($\gamma=2$) para el desbalance, AdamW ($\eta=10^{-4}$), 10 épocas, \textit{batch} 32 y \textbf{5 semillas independientes} (42, 0, 1, 7, 123). Entrenamiento en GPU Tesla T4.
+
+\section{Resultados}
+
+\subsection{La Redundancia Visual es Masiva en Laboratorio (RQ1)}
+La Tabla~\ref{tab:clusters} reporta la estructura de clústeres a distintos umbrales $\tau$. El contraste es nítido: en el Dominio A (laboratorio), a $\tau=0.15$ solo el \textbf{1\% de las imágenes son singleton} y un único clúster agrupa \textbf{941 imágenes} (44\% del dataset), evidenciando una redundancia extrema de casi duplicados. En el Dominio B (campo), la misma configuración deja el \textbf{17\% de singletons} y un clúster máximo de apenas 93 imágenes. Los datasets de laboratorio están, por tanto, plagados de redundancia visual que la partición aleatoria no controla.
+
+\begin{table}[H]
+\centering
+\caption{Estructura de Clústeres de Redundancia (DINOv2) por Umbral $\tau$}
+\label{tab:clusters}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{clcccc}
+\toprule
+\textbf{Dominio} & \textbf{$\tau$} & \textbf{N.º Clústeres} & \textbf{Tamaño Máx.} & \textbf{Tamaño Medio} & \textbf{\% Singletons} \\
+\midrule
+\multirow{5}{*}{A (Lab)}
+ & 0.05 & 1651 & 9    & 1.30  & 59 \\
+ & 0.10 & 373  & 177  & 5.77  & 6  \\
+ & 0.15 & 76   & 941  & 28.32 & 1  \\
+ & 0.20 & 24   & 1869 & 89.67 & 0  \\
+ & 0.30 & 5    & 2121 & 430.4 & 0  \\
+\midrule
+\multirow{5}{*}{B (Campo)}
+ & 0.05 & 1473 & 5    & 1.13  & 78 \\
+ & 0.10 & 1006 & 52   & 1.65  & 43 \\
+ & 0.15 & 500  & 93   & 3.32  & 17 \\
+ & 0.20 & 216  & 244  & 7.68  & 5  \\
+ & 0.30 & 43   & 1057 & 38.58 & 1  \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\subsection{La Redundancia No Siempre Infla la Exactitud (RQ2)}
+La Tabla~\ref{tab:lsi} contrasta la exactitud bajo partición aleatoria frente a VC-GKF ($\tau=0.15$). Sorprendentemente, y pese a la redundancia extrema del laboratorio, la inflación media es \textbf{pequeña} ($\sim$2 pp en ambos dominios) y no significativa con 5 semillas ($p>0.05$). La interpretación es honesta: para una tarea de tres clases altamente separables como la de papa, el modelo generaliza a clústeres no vistos sin necesidad de ``memorizar'' duplicados. La redundancia visual, por sí sola, no convierte automáticamente la exactitud en ilusoria.
+
+\begin{table}[H]
+\centering
+\caption{Exactitud Aleatoria vs.\ VC-GKF e Índice LSI (media sobre 5 semillas)}
+\label{tab:lsi}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{llccc}
+\toprule
+\textbf{Dominio} & \textbf{Modelo} & \textbf{Acc.\ Random} & \textbf{Acc.\ VC-GKF} & \textbf{LSI} \\
+\midrule
+\multirow{4}{*}{A (Lab)}
+ & ResNet50         & 99.64\% & 95.78\% & \textbf{0.039} \\
+ & MobileNetV3      & 99.64\% & 99.38\% & 0.003 \\
+ & EfficientNetV2-S & 99.64\% & 99.12\% & 0.005 \\
+ & ViT-B/16         & 99.58\% & 95.64\% & \textbf{0.040} \\
+\midrule
+\multirow{4}{*}{B (Campo)}
+ & ResNet50         & 93.82\% & 91.64\% & 0.023 \\
+ & MobileNetV3      & 92.85\% & 90.94\% & 0.021 \\
+ & EfficientNetV2-S & 94.54\% & 92.67\% & 0.020 \\
+ & ViT-B/16         & 91.24\% & 89.36\% & 0.021 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\subsection{Robustez Estadística: Tamaño de Efecto e Intervalos de Confianza}
+Dado el tamaño muestral (5 semillas), complementamos el análisis con intervalos de confianza \textit{bootstrap} del 95\% (10{,}000 remuestreos de las diferencias) y el tamaño de efecto no paramétrico de Cliff ($\delta$). La Tabla~\ref{tab:stats} aporta la evidencia más contundente del estudio: en el dominio de laboratorio, el intervalo de la brecha \textbf{excluye el cero} para ResNet50 ([1.14, 6.58] pp) y ViT-B/16 ([0.50, 9.02] pp), lo que indica una inflación por \textit{leakage} estadísticamente confiable; en contraste, para MobileNetV3 y EfficientNetV2-S el intervalo \textbf{incluye el cero} y el $\delta$ es nulo o negativo, evidenciando ausencia de efecto. Aunque el test de Wilcoxon no alcanza significancia formal por su piso de resolución con $n=5$ ($p_{\min}=0.0625$), el análisis \textit{bootstrap} ---que no sufre esa limitación--- respalda cuantitativamente que la susceptibilidad al \textit{leakage} es una propiedad de la arquitectura.
+
+\begin{table}[H]
+\centering
+\caption{Brecha de Exactitud, IC Bootstrap 95\% y Tamaño de Efecto de Cliff ($\delta$)}
+\label{tab:stats}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{llccc}
+\toprule
+\textbf{Dominio} & \textbf{Modelo} & \textbf{Brecha (pp)} & \textbf{IC 95\% (pp)} & \textbf{Cliff $\delta$} \\
+\midrule
+\multirow{4}{*}{A (Lab)}
+ & ResNet50         & +3.86 & [\,1.14,\ 6.58\,] & 0.28 \\
+ & MobileNetV3      & +0.26 & [-0.30,\ 1.18\,]  & -0.20 \\
+ & EfficientNetV2-S & +0.52 & [-0.16,\ 1.68\,]  & -0.04 \\
+ & ViT-B/16         & +3.94 & [\,0.50,\ 9.02\,] & 0.68 \\
+\midrule
+\multirow{4}{*}{B (Campo)}
+ & ResNet50         & +2.18 & [-0.76,\ 5.10\,]  & 0.36 \\
+ & MobileNetV3      & +1.91 & [\,0.02,\ 3.70\,] & 0.60 \\
+ & EfficientNetV2-S & +1.87 & [-0.05,\ 3.79\,]  & 0.76 \\
+ & ViT-B/16         & +1.88 & [-1.25,\ 4.83\,]  & 0.44 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\subsection{La Susceptibilidad al Leakage Depende de la Arquitectura (RQ3)}
+El hallazgo central emerge al desagregar la Tabla~\ref{tab:lsi} por arquitectura en el dominio de laboratorio, donde la redundancia es máxima. Allí los modelos se \textbf{separan drásticamente}: ResNet50 (LSI $=0.039$, $+3.86$ pp) y ViT-B/16 (LSI $=0.040$, $+3.94$ pp) se inflan cerca de \textbf{8$\times$ más} que los modelos eficientes y fuertemente regularizados MobileNetV3-Large (LSI $=0.003$, $+0.26$ pp) y EfficientNetV2-S (LSI $=0.005$, $+0.52$ pp). En el dominio de campo, donde la redundancia es baja, todas las arquitecturas convergen a un LSI $\approx 0.02$. Esto revela un \textbf{efecto de interacción redundancia$\times$arquitectura}: la fuga de datos solo se materializa como inflación significativa cuando coexisten un dataset redundante y un modelo con capacidad excesiva o regularización insuficiente (ResNet50, ViT-B/16). Las convoluciones separables con \textit{Squeeze-and-Excitation} de MobileNetV3 y los bloques Fused-MBConv regularizados de EfficientNetV2 confieren una robustez intrínseca al \textit{leakage}.
+
+\subsection{Complejidad Computacional}
+La Tabla~\ref{tab:comp} confirma que el modelo más robusto al \textit{leakage} (MobileNetV3) es también el más eficiente, reforzando su idoneidad para \textit{Edge AI}.
+\begin{table}[H]
+\centering
+\caption{Complejidad Computacional (CPU, batch=1)}
+\label{tab:comp}
+\resizebox{0.95\columnwidth}{!}{%
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Modelo} & \textbf{Params (M)} & \textbf{Tamaño (MB)} & \textbf{FLOPs (G)} & \textbf{CPU (ms)} \\
+\midrule
+ResNet50         & 23.51 & 90.01  & 4.13  & 119.46 \\
+MobileNetV3      & 4.21  & 16.30  & 0.23  & 21.68  \\
+EfficientNetV2-S & 20.18 & 78.06  & 2.90  & 129.72 \\
+ViT-B/16         & 86.57 & 327.40 & 17.58 & 382.37 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\section{Discusión}
+Nuestros resultados matizan la narrativa alarmista sobre la fuga de datos en fitopatología. Primero, confirmamos que la \textbf{redundancia visual es real y masiva} en los datasets de laboratorio (Tabla~\ref{tab:clusters}): que un solo clúster concentre el 44\% de PlantVillage es un dato contundente sobre la falta de diversidad de estos conjuntos. Segundo, mostramos que esa redundancia \textbf{no se traduce mecánicamente en exactitud ilusoria}: para tareas fáciles y bien separadas, los modelos generalizan a comunidades visuales no vistas. Esta es una corrección importante frente a trabajos que reportan caídas de doble dígito, las cuales ---según nuestra evidencia--- dependen fuertemente de \textbf{cómo} se define la redundancia; en particular, clusterizar con el \textit{backbone} del clasificador (que codifica el fondo) puede sobreestimar el efecto, motivo por el que adoptamos embeddings DINOv2 independientes de la tarea.
+
+Tercero, y más relevante, la \textbf{susceptibilidad al \textit{leakage} es una propiedad de la arquitectura}. En condiciones de alta redundancia, ResNet50 y ViT-B/16 ---modelos de mayor capacidad y menor regularización inductiva--- se inflan casi un orden de magnitud más que MobileNetV3 y EfficientNetV2. Este resultado tiene una implicación práctica directa para la agricultura de subsistencia andina: las arquitecturas de borde no solo son más ligeras y desplegables \textit{offline}, sino que ofrecen estimaciones de desempeño \textbf{más honestas y confiables}. El LSI se propone como una métrica de reporte que debería acompañar a la exactitud en la evaluación de sistemas fitopatológicos.
+
+\subsection{Contraste con el Estado del Arte}
+La Tabla~\ref{tab:sota} posiciona nuestros resultados frente a la literatura reciente. Trabajos como Mohanty et al.\ \cite{mohanty2016using} ($\sim$99.4\%), Mousa et al.\ \cite{mousa2025potato} ($>$98\%) o Joshi et al.\ \cite{joshi2025transfer} (99.1\%) reportan exactitudes casi perfectas, pero \textbf{todos bajo particiones aleatorias} en dominios de laboratorio. Nuestra evaluación anti-fuga (VC-GKF) sitúa el desempeño realista de las mismas familias de modelos en $\sim$97.5\% (laboratorio) y $\sim$91.2\% (campo). El contraste no invalida esos trabajos, pero sí subraya que sus cifras no son directamente comparables con el despliegue real y que la ausencia de un control de redundancia sesga al alza los rankings publicados.
+
+\begin{table}[H]
+\centering
+\caption{Exactitud Reportada (particiones aleatorias) vs.\ Evaluación Anti-Fuga de Este Trabajo}
+\label{tab:sota}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+\textbf{Trabajo} & \textbf{Estrategia de Split} & \textbf{Exactitud} \\
+\midrule
+Mohanty et al.\ \cite{mohanty2016using}      & Aleatorio (lab)       & $\sim$99.4\% \\
+Mousa et al.\ \cite{mousa2025potato}         & Aleatorio (lab)       & $>$98\% \\
+Joshi et al.\ \cite{joshi2025transfer}       & Aleatorio (lab)       & 99.1\% \\
+Sangar y Rajasekar \cite{sangar2025optimized}& Aleatorio (campo)     & 87.8\% \\
+\textbf{Este trabajo (Lab)}                  & \textbf{VC-GKF (anti-fuga)} & \textbf{97.5\%} \\
+\textbf{Este trabajo (Campo)}                & \textbf{VC-GKF (anti-fuga)} & \textbf{91.2\%} \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\subsection{Interpretación: Sesgo Inductivo y Memorización de Redundancia}
+La divergencia de susceptibilidad entre arquitecturas admite una interpretación en términos de sesgo inductivo. Los trabajos de interpretabilidad (XAI) muestran que las redes convolucionales bien regularizadas focalizan su activación en las lesiones necróticas reales de la hoja \cite{potatoxai2024, ramesh2024explainable}. Las convoluciones separables con \textit{Squeeze-and-Excitation} de MobileNetV3 y los bloques Fused-MBConv con regularización estocástica de EfficientNetV2 restringen la capacidad efectiva del modelo, forzándolo a aprender rasgos discriminativos generalizables en lugar de memorizar el fondo y la textura redundante de imágenes casi duplicadas. En contraste, la elevada capacidad de ResNet50 y, sobre todo, la ausencia de sesgo de localidad de ViT-B/16 \cite{dosovitskiy2020image} les permiten ``atajar'' la clasificación explotando la redundancia visual, lo que se traduce en la inflación observada bajo particiones aleatorias. Así, la robustez al \textit{leakage} y la interpretabilidad ``honesta'' de las activaciones parecen dos caras del mismo sesgo inductivo de localidad.
+
+\section{Limitaciones}
+Este estudio tiene límites que enmarcan sus conclusiones. (i) Se usaron \textbf{5 semillas}, insuficientes para significancia estadística formal ($p$ mínimo $=0.0625$); las diferencias reportadas son consistentes en dirección pero deben leerse como tendencias. (ii) El estudio se acota al cultivo de \textbf{papa con tres clases}; una tarea de grano fino o con más clases podría exhibir mayor sensibilidad al \textit{leakage}, y su exploración multi-cultivo es trabajo futuro. (iii) La magnitud del LSI depende del umbral $\tau$ y del extractor de embeddings; reportamos el análisis de sensibilidad completo (Tabla~\ref{tab:clusters}) por transparencia. (iv) La clase \textit{healthy} del Dominio B proviene de una fuente distinta (Sankalana), lo que introduce una variable a controlar en estudios futuros.
+
+\section{Conclusiones}
+Presentamos un estudio riguroso y honesto sobre la fuga de datos por redundancia visual en fitopatología. \textbf{Respuestas a las preguntas de investigación:} \textit{RQ1}: la redundancia visual es masiva en laboratorio (1\% de imágenes singleton; un clúster agrupa el 44\% del dataset) y modesta en campo (17\%). \textit{RQ2}: esa redundancia infla la exactitud solo $\sim$2 pp en promedio para la tarea de tres clases, sin significancia formal. \textit{RQ3}: sí, la susceptibilidad es una propiedad de la arquitectura ---ResNet50 y ViT-B/16 se inflan $\sim$8$\times$ más que MobileNetV3 y EfficientNetV2-S, con intervalos de confianza \textit{bootstrap} que excluyen el cero únicamente para los dos primeros. Contribuimos, además, con un protocolo de evaluación no circular (VC-GKF con DINOv2) y una métrica de reporte (LSI). Empíricamente demostramos que (1) la redundancia visual es masiva en laboratorio y modesta en campo; (2) dicha redundancia infla poco la exactitud en tareas fáciles; y (3) la inflación, cuando ocurre, está gobernada por la interacción entre la redundancia del dataset y la capacidad/regularización del modelo, siendo las arquitecturas eficientes (MobileNetV3, EfficientNetV2) hasta $8\times$ más robustas que ResNet50 y ViT-B/16. Recomendamos reportar el LSI junto a la exactitud y preferir arquitecturas de borde no solo por eficiencia, sino por la fiabilidad de su evaluación.
+
+\section*{Disponibilidad de Datos y Código}
+Los datasets son públicos en Kaggle. El código y los notebooks de reproducibilidad están disponibles en el repositorio de los autores: \url{https://github.com/Gonder301/potato_disease_paper}.
+
+\bibliographystyle{IEEEtran}
+\bibliography{referencias}
+\end{document}
