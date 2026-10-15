@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "Please cite the associated Frontiers article when using these reproducibility materials."
 type: software
 title: "Reproducibility materials for Leaf Identity and Visual Group Splitting in Potato Disease Classification"
-version: "5.0.0"
+version: "5.0.1"
 date-released: 2026-10-15
 url: "https://github.com/Gonder301/potato_disease_paper"
 repository-code: "https://github.com/Gonder301/potato_disease_paper"

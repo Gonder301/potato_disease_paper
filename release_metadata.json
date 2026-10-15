@@ -1,7 +1,7 @@
 {
-  "version": "5.0.0",
+  "version": "5.0.1",
   "repository": "https://github.com/Gonder301/potato_disease_paper",
-  "release_tag": "corrected-v5",
+  "release_tag": "corrected-v5.0.1",
   "historical_commit": "73cfdcd76bd408729c270cd508e22b604896fe6a",
   "result_archive_sha256": "501c4214e73583c628e799659b7e3a69b7aeaab38af28706e374c85ac3d71874",
   "experiment_signature": "773af3d89fa82d512df8da024e151be6df88ed9a06bb4ff40797612038c6824c",

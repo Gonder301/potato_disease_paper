@@ -22,3 +22,5 @@ The revised experiment was designed after reviewing earlier results; it was not 
 ## Scope of public material
 
 Only scientific assets were selected for this deposit. Private reviewer correspondence, proof files and author-administration documents are not included in the corrected package. The accepted article is linked at Frontiers; this deposit does not purport to replace the final typeset publication or its author metadata.
+
+Packaging version 5.0.1 records historical text-file hashes using the exact bytes stored by Git. The v5 experimental archive, training engine, frozen assignments and predictions are unchanged.

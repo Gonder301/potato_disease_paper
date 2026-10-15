@@ -2,7 +2,7 @@
 
 Reproducibility materials for the corrected **v5 study** accepted by *Frontiers in Computer Science* on 9 October 2026. The package contains the recorded results, frozen evaluation partitions, executed training engine, analysis code, reference metadata and figure materials.
 
-[Article at Frontiers](https://www.frontiersin.org/journals/computer-science/articles/10.3389/fcomp.2026.1946705/abstract) · Article DOI: `10.3389/fcomp.2026.1946705` · [Stable corrected repository version](https://github.com/Gonder301/potato_disease_paper/tree/corrected-v5)
+[Article at Frontiers](https://www.frontiersin.org/journals/computer-science/articles/10.3389/fcomp.2026.1946705/abstract) · Article DOI: `10.3389/fcomp.2026.1946705` · [Stable corrected repository version](https://github.com/Gonder301/potato_disease_paper/tree/corrected-v5.0.1)
 
 **Authors:** Andrés Abraham Guerrero Jaramillo, Hugo Vega-Huerta, Gustavo Arredondo-Castillo, William Enriquez, Rubén Gil-Calvo, Juan Honorato Luna-Valdez, Antonio Mambret Luna Figueroa, Maria Laura Barrera Cajachagua, Juan Carlos Lázaro-Guillermo, Mario Chauca, Moisés Ronal Niño Cueva and Ivan Adrianzén-Olano.
 
