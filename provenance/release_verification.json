@@ -1,0 +1,34 @@
+{
+  "status": "PASS",
+  "completed": 240,
+  "prediction_rows": 62160,
+  "histories_verified": 240,
+  "splits_verified": 60,
+  "primary_tests": 24,
+  "primary_q_below_005": 17,
+  "interaction_tests": 6,
+  "interaction_q_below_005": 0,
+  "all_compared_tables_match": true,
+  "original_archive_sha256": "501c4214e73583c628e799659b7e3a69b7aeaab38af28706e374c85ac3d71874",
+  "experiment_signature": "773af3d89fa82d512df8da024e151be6df88ed9a06bb4ff40797612038c6824c",
+  "manual_field_validation": "NOT_AVAILABLE",
+  "used_gpu": false,
+  "trained_models": false,
+  "environment": {
+    "python": "3.12.14",
+    "numpy": "2.3.5",
+    "pandas": "3.0.1"
+  },
+  "validation_date": "2026-10-15",
+  "notebook_schemas_validated": 3,
+  "original_engine_and_runtime_unchanged": true,
+  "training_states_validated_by_original_runtime": [
+    0,
+    60
+  ],
+  "figure_adapter_executed": true,
+  "figures_visually_checked": 4,
+  "unsafe_output_and_changed_input_rejected": true,
+  "credential_pattern_scan": "no_matches",
+  "scope": "CPU reanalysis and release adapters; no new classifier training or field annotation"
+}

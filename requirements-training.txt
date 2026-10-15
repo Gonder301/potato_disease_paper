@@ -1,0 +1,9 @@
+# Install the recorded PyTorch/CUDA pair separately from its official index:
+# torch==2.10.0+cu128 and torchvision==0.25.0+cu128
+# Recorded Python: 3.12.13. See analysis/environment.json.
+timm==1.0.26
+ImageHash==4.3.2
+numpy==2.0.2
+pandas==2.3.3
+scikit-learn==1.6.1
+scipy==1.16.3

@@ -1,0 +1,11 @@
+{
+  "images_total": 2152,
+  "images_reference": 2152,
+  "coverage_percent": 100.0,
+  "missing": [],
+  "unique_leaf_ids": 538,
+  "source": "https://github.com/spMohanty/PlantVillage-Dataset",
+  "commit": "7f7ecc7e1eaca78107e3affe7cb5abd9427e139a",
+  "map_sha256": "3b4b253683c6911744959a3870a92509b1faa1ee34e9f8585e21d0fe6337a25b",
+  "reference_type": "Published leaf identity metadata; not newly performed manual near-copy annotation"
+}

@@ -1,0 +1,34 @@
+{
+  "tsne": {
+    "perplexity": 30,
+    "metric": "cosine",
+    "init": "pca",
+    "learning_rate": "auto",
+    "max_iter": 1000,
+    "random_state": 42,
+    "n_jobs": 1,
+    "independent_panels": true,
+    "diagnostics": [
+      {
+        "domain": "potato_lab_leaf_id",
+        "n": 2152,
+        "embedding_sha256": "83b51f0e8275eacc286aecd626ce0bc749a14e982597525dc3258d63222cc65d",
+        "kl_divergence": 1.7277017831802368,
+        "iterations": 999
+      },
+      {
+        "domain": "potato_field_single_source",
+        "n": 1296,
+        "embedding_sha256": "826e852a2d0cf9fbcc50672c0cae017ffe4743a3a0784d5b65c7b15e71d8c7cf",
+        "kl_divergence": 1.4022783041000366,
+        "iterations": 999
+      }
+    ]
+  },
+  "samples": {
+    "selection": "For each of early_blight and late_blight, first numeric DINO cluster with two sorted reference leaf IDs having at least two images; first two image IDs per selected leaf.",
+    "meaning": "Illustrative examples only; not manual annotation",
+    "reference_commit": "7f7ecc7e1eaca78107e3affe7cb5abd9427e139a",
+    "hashes_match_experiment": true
+  }
+}

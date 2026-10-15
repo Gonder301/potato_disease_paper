@@ -1,2 +1,7 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Preserve recorded file bytes and SHA256 values on every operating system.
+* -text
+*.png binary
+*.jpg binary
+*.pdf binary
+*.npz binary
+*.zip binary

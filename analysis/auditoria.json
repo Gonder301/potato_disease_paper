@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "completed": 240,
+  "expected": 240,
+  "remaining": 0,
+  "zip_sha256": "501c4214e73583c628e799659b7e3a69b7aeaab38af28706e374c85ac3d71874",
+  "signature": "773af3d89fa82d512df8da024e151be6df88ed9a06bb4ff40797612038c6824c",
+  "zip_crc": "all_entries_verified",
+  "splits_verified": 60,
+  "prediction_rows": 62160,
+  "histories_verified": 240,
+  "prior_200_predictions_unchanged": 200,
+  "initial_60_predictions_unchanged": 60,
+  "metrics_and_statistics_recomputed": true,
+  "significant_q_24": 17,
+  "manual_field_validation": "PENDING",
+  "interpretation": "Conditional repeated-seed comparison on fixed datasets; no causal isolation of duplicate effects"
+}

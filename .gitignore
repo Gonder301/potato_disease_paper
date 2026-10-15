@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+reanalysis_output*/
+regenerated_figures*/
+frozen_state*/
+RESULTS_closure/
+*.pt
+.env

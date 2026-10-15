@@ -1,0 +1,3 @@
+domain,images,groups,largest,mean_size,singletons,singleton_image_percent,class_purity
+potato_field_single_source,1296,890,11,1.456179775280899,641,49.45987654320987,0.9884259259259259
+potato_lab_leaf_id,2152,538,4,4.0,0,0.0,1.0
